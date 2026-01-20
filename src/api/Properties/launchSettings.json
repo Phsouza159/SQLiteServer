@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SQLiteServer": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
