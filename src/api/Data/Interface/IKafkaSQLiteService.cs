@@ -1,4 +1,6 @@
-﻿namespace SQLiteServer.Data.Interface
+﻿using SQLiteServer.Data.Enum;
+
+namespace SQLiteServer.Data.Interface
 {
     public interface IKafkaSQLiteService
     {

@@ -5,9 +5,9 @@ using SQLiteServer.Data.Interface;
 
 namespace SQLiteServer.Services
 {
-    internal class KafkaSQLiteService : IKafkaSQLiteService
+    public class KafkaSQLiteService : IKafkaSQLiteService
     {
-        internal KafkaSQLiteService(ILogger<KafkaSQLiteService> logger)
+        public KafkaSQLiteService(ILogger<KafkaSQLiteService> logger)
         {
             Logger = logger;
         }
@@ -30,17 +30,17 @@ namespace SQLiteServer.Services
               Queue<RegistroFila> queue
             , CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested || !queue.Any())
                 return;
 
             var registro = queue.Dequeue();
             registro.Status = StatusRegistroFila.EM_EXECUCAO;
 
-            await this.ExecutarRegistro(registro);
+            await this.ExecutarRegistro(registro, cancellationToken);
             await this.ProcessarFilaKafka(queue, cancellationToken);
         }
 
-        private async Task ExecutarRegistro(RegistroFila registro)
+        private async Task ExecutarRegistro(RegistroFila registro, CancellationToken cancellationToken)
         {
             // TODO - PROCESSAR REGISTRO PARA SQLite
         }

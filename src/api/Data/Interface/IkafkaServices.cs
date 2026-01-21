@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using SQLiteServer.Data.Enum;
 
 namespace SQLiteServer.Data.Interface
 {
     public interface IkafkaServices
     {
+        StatusKafkaService Status { get; }
+
         Queue<RegistroFila> Queue { get; }
 
         void Consumer(CancellationToken cancellationToken);
