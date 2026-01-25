@@ -6,8 +6,6 @@ namespace SQLiteServer.Data.Interface
     {
         StatusKafkaService Status { get; }
 
-        Queue<RegistroFila> Queue { get; }
-
-        void Consumer(CancellationToken cancellationToken);
+        Task Consumer(CancellationToken cancellationToken);
     }
 }

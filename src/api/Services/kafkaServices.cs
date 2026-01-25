@@ -6,7 +6,7 @@ using SQLiteServer.Data.Interface;
 
 namespace SQLiteServer.Services
 {
-    internal class kafkaServices : ObjetoBase, IkafkaServices
+    internal class kafkaServices : IkafkaServices
     {
         public kafkaServices(ILogger<kafkaServices> logger)
         {
@@ -15,22 +15,25 @@ namespace SQLiteServer.Services
 
         public ILogger<kafkaServices> Logger { get; }
 
-        public Queue<RegistroFila> Queue { get; private set; } = new Queue<RegistroFila>();
+       // public Queue<RegistroFila> Queue { get; private set; } = new Queue<RegistroFila>();
 
         private StatusKafkaService _status { get; set; }
 
         public StatusKafkaService Status { get => this._status; }
 
-        public void Consumer(CancellationToken cancellationToken)
+        public async Task Consumer(CancellationToken cancellationToken)
         {
+            if (!Configuracao.STATUS_KAFKA_LISTEN)
+                return;
+
             this._status = StatusKafkaService.START;
 
             var consumer =
                 new ConsumerBuilder<Ignore, string>(this.RecuperarConfiguracao())
                     .SetErrorHandler(ErrorHandler)
                     .Build();
-            
-            string topico = "meu-topico";
+
+            string topico = Configuracao.KAFKA_TOPICO;
             consumer.Subscribe(topico);
 
             this.Logger.LogInformation("Conectando servico no topico: {0}", topico);
@@ -42,17 +45,17 @@ namespace SQLiteServer.Services
                     this._status = StatusKafkaService.CONNECTED;
                     var consumeResult = consumer.Consume(cancellationToken);
 
-                    RegistroFila registro = new()
-                    {
-                        Offset = consumeResult.Offset.Value,
-                        Topico = consumeResult.Topic,
-                        DataCadastro = consumeResult.Message.Timestamp,
-                        Mensagem = consumeResult.Message.Value,
-                        Status = StatusRegistroFila.PENDENTE
-                    };
+                    //RegistroFila registro = new()
+                    //{
+                    //    Offset = consumeResult.Offset.Value,
+                    //    Topico = consumeResult.Topic,
+                    //    DataCadastro = consumeResult.Message.Timestamp,
+                    //    Mensagem = consumeResult.Message.Value,
+                    //    Status = StatusRegistroFila.PENDENTE
+                    //};
 
-                    this.Queue.Enqueue(registro);
-                    this.Logger.LogInformation("Item adicionado na fila ID: {0}", registro.Offset);
+                    //this.Queue.Enqueue(registro);
+                    //this.Logger.LogInformation("Item adicionado na fila ID: {0}", registro.Offset);
 
                 }
                 catch (KafkaException e)
@@ -76,12 +79,12 @@ namespace SQLiteServer.Services
         {
             var config = new ConsumerConfig
             {
-                BootstrapServers = "localhost:9092",
-                GroupId          = "meu-grupo-consumidor",
+                BootstrapServers = Configuracao.KAFKA_SERVER,
+                GroupId          = Configuracao.KAFKA_GRUPO,
                 AutoOffsetReset  = AutoOffsetReset.Earliest,
                 EnableAutoCommit = false,
                 MaxPollIntervalMs = 300000,
-                SessionTimeoutMs = 10000,
+                SessionTimeoutMs  = 10000,
             };
 
             return config;
