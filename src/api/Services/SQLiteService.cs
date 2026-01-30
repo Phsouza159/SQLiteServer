@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using SQLite;
-using SQLiteServer.Data;
+using SQLiteServer.Application;
 using SQLiteServer.Data.Interface;
 
 namespace SQLiteServer.Services
@@ -10,12 +10,9 @@ namespace SQLiteServer.Services
         public SQLiteService(ILogger<SQLiteService> logger)
         {
             this.Logger = logger;
-            this.fila = new Queue<IEntidade>();
         }
 
-        private ILogger<SQLiteService> Logger { get; }
-
-        private readonly Queue<IEntidade> fila;
+        private readonly ILogger<SQLiteService> Logger;
 
         public bool IsAtivo => Configuracao.STATUS_SQLITE_SERVICE;
 
@@ -37,20 +34,11 @@ namespace SQLiteServer.Services
             }
         }
 
-        #region REGISTRA ITEM NA FILA
-
-        public void AdicionarItemFila(IEntidade entidade)
-        {
-            this.fila.Enqueue(entidade);
-        }
-
-        #endregion
-
         #region EXECUTAR SERVICO
 
         public async Task<bool> ProcessarFila(CancellationToken cancellationToken)
         {
-            if(this.fila.Any())
+            if(DataCache.FilaProcessamentoSQLite.Any())
             {
                 SQLitePCL.Batteries_V2.Init();
 
@@ -69,10 +57,12 @@ namespace SQLiteServer.Services
               SQLiteAsyncConnection conexao
             , CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested || !this.fila.Any())
+            if (cancellationToken.IsCancellationRequested || !DataCache.FilaProcessamentoSQLite.Any())
                 return;
 
-            var registro = this.fila.Dequeue();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var registro = DataCache.FilaProcessamentoSQLite.Dequeue();
 
             await registro.SaveBackup(cancellationToken);
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using SQLiteServer.Data;
+using SQLiteServer.Application;
 using SQLiteServer.Data.Interface;
 using SQLiteServer.Data.Registros;
 using System.Net;
@@ -16,12 +16,7 @@ namespace SQLiteServer.Services.Stream
             Logger = logger;
         }
 
-        internal IProcessamentoFila<IRegistroTcpSQLite> ProcessamentoFila { get; private set; }
-
-        internal ISQLiteService SQLiteService { get; private set; }
-
-        internal ILogger<ServicoTcp> Logger { get; }
-
+        internal readonly ILogger<ServicoTcp> Logger;
 
         public async Task Start(CancellationToken cancellationToken)
         {
@@ -43,14 +38,13 @@ namespace SQLiteServer.Services.Stream
 
                     NetworkStream stream = client.GetStream();
 
-                    var registroTcp = await this.ProcessamentoFila.Addicionar(async () =>
+                    var registroTcp = await DataCache.AddRegistroFilaTcp(async () =>
                     {
-                        RegistroTcpSQLite registro = new RegistroTcpSQLite();
+                        IRegistroTcpSQLite registro = new RegistroTcpSQLite();
                         byte[] buffer = await this.CarregarStream(stream);
                         registro.Mensagem = Encoding.ASCII.GetString(buffer, 0, buffer.Length);
 
-                        this.SQLiteService.AdicionarItemFila(registro);
-
+                        DataCache.FilaProcessamentoSQLite.Enqueue(registro);
                         return registro;
                     });
 
@@ -86,16 +80,6 @@ namespace SQLiteServer.Services.Stream
             ms.Write(buffer, 0, bytesRead);
 
             return ms.ToArray();
-        }
-
-        public void Connectar(IProcessamentoFila<IRegistroTcpSQLite> processamento)
-        {
-            this.ProcessamentoFila = processamento;
-        }
-        
-        public void Connectar(ISQLiteService service)
-        {
-            this.SQLiteService = service;
         }
     }
 }

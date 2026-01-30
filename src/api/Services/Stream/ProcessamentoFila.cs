@@ -1,50 +1,40 @@
 ﻿using Microsoft.Extensions.Logging;
+using SQLiteServer.Application;
 using SQLiteServer.Application.Server.Job;
 using SQLiteServer.Data.Interface;
-using System.Threading.Channels;
+using SQLiteServer.Data.Registros;
 
 namespace SQLiteServer.Services.Stream
 {
-    internal class ProcessamentoFila<TSource> : IProcessamentoFila<TSource>
-        where TSource : class
+    internal class ProcessamentoFila : IProcessamentoFila
     {
-        private readonly Channel<object> _fila;
-
-
-        public ProcessamentoFila(ILogger<ProcessamentoFila<TSource>> logger)
+        public ProcessamentoFila(ILogger<ProcessamentoFila> logger)
         {
-            _fila = Channel.CreateUnbounded<object>();
             Logger = logger;
         }
 
-        public ILogger<ProcessamentoFila<TSource>> Logger { get; }
-
-        public Task<TSource> Addicionar(Func<Task<TSource>> task)
-        {
-            var itemFila = new ItemFila<TSource>(task);
-            _fila.Writer.WriteAsync(itemFila);
-            return itemFila.Tcs.Task;
-        }
+        public ILogger<ProcessamentoFila> Logger { get; }
 
         public async Task ProcessarFila(CancellationToken cancellationToken)
         {
-            await foreach (var item in _fila.Reader.ReadAllAsync(cancellationToken))
+            await foreach (var item in DataCache.FilaRegistroTcp.Reader.ReadAllAsync(cancellationToken))
             {
                 try
                 {
                     switch (item)
                     {
-                        case ItemFila<object> itemObje:
-                            await ExecuteJob(itemObje, cancellationToken);
+                        case ItemFila<RegistroTcpSQLite> itemConcreto:
+                            await ExecuteJob(itemConcreto, cancellationToken);
+                            break;
+
+                        case ItemFila<IRegistroTcpSQLite> itemInterface:
+                            await ExecuteJob(itemInterface, cancellationToken);
                             break;
 
                         default:
-                            // Usa reflexão para tipos genéricos
-                            var type = item.GetType();
-                            var method = GetType().GetMethod(nameof(ExecuteJob), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                            var generic = method.MakeGenericMethod(type.GenericTypeArguments[0]);
-                            await (Task)generic.Invoke(this, new[] { item , cancellationToken });
-                            break;
+                            throw new InvalidOperationException(
+                                $"Tipo de ItemFila não suportado: {item.GetType()}"
+                            );
                     }
                 }
                 catch (Exception ex)
@@ -54,19 +44,19 @@ namespace SQLiteServer.Services.Stream
             }
         }
 
-        private async Task ExecuteJob<TSource>(ItemFila<TSource> item, CancellationToken cancellationToken)
-            where TSource : class
+        private async Task ExecuteJob<T>(ItemFila<T> item, CancellationToken cancellationToken)
+            where T : IEntidade
         {
             try
             {
-                var result = await item.Action();
-                item.Tcs.SetResult(result);
+                var result = await item.FilaOperacao();
+                item.FonteConclusaoTarefa.SetResult(result);
             }
             catch (Exception ex)
             {
-                item.Tcs.SetException(ex);
+                this.Logger.LogError(ex, "Erro execução operação Fila.");
+                item.FonteConclusaoTarefa.SetException(ex);
             }
         }
-
     }
 }

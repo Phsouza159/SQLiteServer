@@ -9,9 +9,5 @@ namespace SQLiteServer.Data.Interface
     internal interface IServicoTcp
     {
         Task Start(CancellationToken cancellationToken);
-
-        void Connectar(IProcessamentoFila<IRegistroTcpSQLite> processamento);
-
-        void Connectar(ISQLiteService sQLiteService);
     }
 }

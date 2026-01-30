@@ -18,7 +18,7 @@ setInterval(() => {
         client.write(payload);
         console.log('Enviado:', payload);
     });
-}, 1);
+}, 100);
 client.on('data', (data) => {
     console.log('Recebido:', data.toString());
 });

@@ -1,15 +1,17 @@
-﻿namespace SQLiteServer.Application.Server.Job
+﻿using SQLiteServer.Data.Interface;
+
+namespace SQLiteServer.Application.Server.Job
 {
     internal class ItemFila<T>
-        where T : class
+        where T : IEntidade
     {
-        public Func<Task<T>> Action { get; }
-        public TaskCompletionSource<T> Tcs { get; }
+        public Func<Task<T>> FilaOperacao { get; }
+        public TaskCompletionSource<T> FonteConclusaoTarefa { get; }
 
-        public ItemFila(Func<Task<T>> action)
+        public ItemFila(Func<Task<T>> filaOperacao)
         {
-            Action = action;
-            Tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+            FilaOperacao = filaOperacao;
+            FonteConclusaoTarefa = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
     }
 }

@@ -4,8 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SQLiteServer.Application;
 using SQLiteServer.Work;
 using Serilog;
-using SQLiteServer.Data;
 using SQLiteServer.Services.Stream;
+using SQLiteServer.Data.Enum;
 
 namespace SQLiteServer
 {
@@ -42,10 +42,43 @@ namespace SQLiteServer
                )
                .ConfigureServices((hostContext, services) =>
                {
-                   services.ConfigurarIoC();
+                   CommandWork command = RecuperarCommand(args);
 
-                   services.AddHostedService<SQLiteWork>();
+                   CarregarServicos(services, command);
+
                });
+        }
+
+        private static void CarregarServicos(IServiceCollection services, CommandWork command)
+        {
+            services.ConfigurarIoC();
+
+            switch (command)
+            {
+                case CommandWork.DEFAULT:
+                    services.AddHostedService<SQLiteWork>();
+                    break;
+
+                case CommandWork.KAFKA:
+                    services.AddHostedService<KafkaWork>();
+                    break;
+                default:
+                    throw new ArgumentException("Commando não suportado.");
+            }
+        }
+
+        private static CommandWork RecuperarCommand(string[] args)
+        {
+            string cmd = args.Length > 0 ? args[0] : string.Empty;
+
+            switch (cmd.ToUpper())
+            {
+                case "K":
+                    return CommandWork.KAFKA;
+
+                default:
+                    return CommandWork.DEFAULT;
+            }
         }
     }
 }

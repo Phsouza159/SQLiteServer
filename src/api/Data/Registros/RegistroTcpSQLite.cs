@@ -4,7 +4,7 @@ using SQLiteServer.Data.Interface;
 namespace SQLiteServer.Data.Registros
 {
     [Table("RegistroLogsTcp")]
-    public class RegistroTcpSQLite : ObjetoBase, IRegistroTcpSQLite
+    public class RegistroTcpSQLite : ObjetoBase<Guid>, IRegistroTcpSQLite
     {
         public RegistroTcpSQLite()
         {

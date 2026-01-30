@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using SQLiteServer.Application.Repository;
 using SQLiteServer.Data.Interface;
 using SQLiteServer.Services;
 using SQLiteServer.Services.Stream;
@@ -13,8 +14,8 @@ namespace SQLiteServer.Application
             services.AddScoped<ISQLiteService, SQLiteService>();
             services.AddScoped<IServicoTcp, ServicoTcp>();
 
-            
-            services.AddSingleton(typeof(IProcessamentoFila<IRegistroTcpSQLite>), typeof(ProcessamentoFila<IRegistroTcpSQLite>));
+            services.AddScoped<IProcessamentoFila, ProcessamentoFila>();
+            services.AddScoped(typeof(IRepositorioBase<>), typeof(RepositorioBase<>));
         }
     }
 }

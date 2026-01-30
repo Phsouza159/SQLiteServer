@@ -5,7 +5,7 @@ using SQLiteServer.Data.Interface;
 
 namespace SQLiteServer.Work
 {
-    public class SQLiteWork : BackgroundService
+    internal class SQLiteWork : BaseWork
     {
         public SQLiteWork(
               ILogger<SQLiteWork> logger
@@ -14,12 +14,12 @@ namespace SQLiteServer.Work
         {
             this.Logger = logger;
             this.ServiceScopeFactory = serviceScopeFactory;
-            this.ServicosRegistrados = new List<IServicoBase> ();
+            this.ServicosRegistrados = new List<IServicoBase>();
         }
 
         #region PROPRIEDADES
 
-        internal ILogger<SQLiteWork> Logger { get; set; }
+        private readonly ILogger<SQLiteWork> Logger;
         
         internal IServiceScopeFactory ServiceScopeFactory { get; set; }
         
@@ -29,7 +29,7 @@ namespace SQLiteServer.Work
 
         internal List<IServicoBase> ServicosRegistrados { get; set; }
 
-        internal IProcessamentoFila<IRegistroTcpSQLite> ProcessamentoFilaTcp { get; set; }
+        internal IProcessamentoFila ProcessamentoFilaTcp { get; set; }
 
         internal IServicoTcp ServicoTcp { get; set; }
 
@@ -46,6 +46,9 @@ namespace SQLiteServer.Work
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
             this.Logger.LogInformation("Serviço SQLiteWork encerrando em: {time}", DateTimeOffset.Now);
+
+            await Application.DataCache.SalvarCacache();
+
             await base.StopAsync(cancellationToken);
         }
 
@@ -93,38 +96,30 @@ namespace SQLiteServer.Work
                 // LISTA DE SERVICOS REGISTRADO
                 foreach (var servico in this.ServicosRegistrados)
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
                     // EXECUTAR SERVICO REGISTRADO
                     _ = await servico.ExecutarServico(cancellationToken);
                 }
 
-                // DELAY DE EXECUCAO - 5 s
+                // DELAY DE EXECUCAO - 15 s
                 await Task.Delay(1000 * 15, cancellationToken);
             }
-
         }
 
         #endregion
 
         #region EXECUCAO DEPENDENCIAS
 
-        private void ConfigurarDependencias(IServiceScope scope)
+        internal override void ConfigurarDependencias(IServiceScope scope)
         {
             this.kafkaServices          = RecuperarServico<IkafkaServices>(scope);
             this.SQLiteService          = RecuperarServico<ISQLiteService>(scope);
-            this.ProcessamentoFilaTcp   = RecuperarServico<IProcessamentoFila<IRegistroTcpSQLite>>(scope);
+            this.ProcessamentoFilaTcp   = RecuperarServico<IProcessamentoFila>(scope);
             this.ServicoTcp             = RecuperarServico<IServicoTcp>(scope);
            
-            // CONECTAR SERVICOS 
-            this.ServicoTcp.Connectar(this.ProcessamentoFilaTcp);
-            this.ServicoTcp.Connectar(this.SQLiteService);
-
             this.ServicosRegistrados.Add(SQLiteService);
-        }
-
-        private T RecuperarServico<T>(IServiceScope scope)
-        {
-            return scope.ServiceProvider.GetService<T>()
-                 ?? throw new ArgumentException($"Falha ao criar serviço '{typeof(T).Name}'");
         }
 
         #endregion

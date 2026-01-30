@@ -1,12 +1,14 @@
 ﻿using Newtonsoft.Json;
 using SQLite;
+using SQLiteServer.Application;
 using SQLiteServer.Data.Interface;
 
 namespace SQLiteServer.Data
 {
-    public class ObjetoBase : IEntidade, IDisposable
+    public class ObjetoBase<T> : IEntidade, IDisposable
+        where T : struct
     {
-        public virtual Guid ID { get; set; }
+        public virtual T ID { get; set; }
 
         [Ignore]
         public string CaminhoArquivoBackup { get => Path.Combine(Configuracao.DIRETORIO_PASTA_TEMPORARIA, $"{this.ID}-registro.temp"); }

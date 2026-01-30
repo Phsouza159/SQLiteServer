@@ -1,6 +1,6 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
-using SQLiteServer.Data;
+using SQLiteServer.Application;
 using SQLiteServer.Data.Enum;
 using SQLiteServer.Data.Interface;
 
@@ -14,8 +14,6 @@ namespace SQLiteServer.Services
         }
 
         public ILogger<kafkaServices> Logger { get; }
-
-       // public Queue<RegistroFila> Queue { get; private set; } = new Queue<RegistroFila>();
 
         private StatusKafkaService _status { get; set; }
 
